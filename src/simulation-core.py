@@ -10,21 +10,49 @@ class Simulation:
     def __init__(self, 
                  max_simulation_ticks, 
                  simulation_matrix_size,
-                 redstone_schematics):
+                 redstone_schematics,
+                 blocks_orientation):
         
         self.max_simulation_ticks = max_simulation_ticks
         self.simulation_matrix_size = simulation_matrix_size
         self.simulation_block_matrix = redstone_schematics
+        self.simulation_block_orientation_matrix = blocks_orientation
         self.simulation_redstone_power_matrix = np.zeros((simulation_matrix_size, simulation_matrix_size, simulation_matrix_size), dtype=int)
 
-        self.set_initial_power_levels()
+        self.initial_setup()
 
-    def set_initial_power_levels(self):
+    def initial_setup(self):
         for y in range(self.simulation_matrix_size):
             for x in range(self.simulation_matrix_size):
                 for z in range(self.simulation_matrix_size):
-                    if self.simulation_block_matrix[x][z][y] == rc.RedstoneComponentUniqueID.REDSTONE_BLOCK.value:
-                        self.simulation_redstone_power_matrix[x][z][y] = rc.RedstoneConstants.MAX_POWER.value
+                    self.set_initial_power_levels(self.simulation_block_matrix[x][z][y], [x, z, y])
+                    self.create_dependency_graph([x, z, y])
+
+    def set_initial_power_levels(self, block, indexes): 
+        current_x = indexes[0]
+        current_z = indexes[1]
+        current_y = indexes[2]
+        if block == rc.RedstoneComponentUniqueID.REDSTONE_BLOCK.value:
+            self.simulation_redstone_power_matrix[current_x][current_z][current_y] = rc.RedstoneConstants.MAX_POWER.value
+
+    def create_dependency_graph(self, indexes):
+        current_x = indexes[0]
+        current_z = indexes[1]
+        current_y = indexes[2]
+        redstone_block = self.create_redstone_object(   self.simulation_block_matrix[current_x][current_z][current_y], 
+                                                        self.simulation_block_orientation_matrix[current_x][current_z][current_y])
+        
+        area_of_dependency_matrix = self.simulation_block_matrix[   current_x - redstone_block.area_of_effect:current_x + redstone_block.area_of_effect, 
+                                                                    current_z - redstone_block.area_of_effect:current_z + redstone_block.area_of_effect,
+                                                                    current_y - redstone_block.area_of_effect:current_y + redstone_block.area_of_effect]
+        print("OK")
+
+    def create_redstone_object(self, block_id, block_orientation):
+        #TODO: extend for all possible redstone blocks
+        if block_id == rc.RedstoneComponentUniqueID.REDSTONE_BLOCK.value:
+            return rc.RedstoneBlock()
+        elif block_id == rc.RedstoneComponentUniqueID.REDSTONE_REPEATER.value:
+            return rc.Repeater(orientation=block_orientation)
 
     def run(self):
         for tick in range(1, self.max_simulation_ticks):
@@ -45,8 +73,14 @@ class Simulation:
 
 
 # TEST
-redstone_test = np.zeros((5, 5, 5), dtype=int)
-redstone_test[0][0][0] = rc.RedstoneComponentUniqueID.REDSTONE_BLOCK.value
-redstone_test[0][1][0] = rc.RedstoneComponentUniqueID.REDSTONE_REPEATER.value
+test_size_x_z = 5
+# test_size_y = 1 keep it simple for the first test
+redstone_test_schematic = np.zeros((test_size_x_z, test_size_x_z, test_size_x_z), dtype=int)
+redstone_test_schematic_block_orientation = np.zeros((test_size_x_z, test_size_x_z, test_size_x_z), dtype=int)
 
-model = Simulation(100, 5, redstone_test)
+redstone_test_schematic[0][0][0] = rc.RedstoneComponentUniqueID.REDSTONE_BLOCK.value
+redstone_test_schematic_block_orientation[0][0][0] = rc.OrizontalSpaceOrientation.DONT_CARE.value
+redstone_test_schematic[0][1][0] = rc.RedstoneComponentUniqueID.REDSTONE_REPEATER.value
+redstone_test_schematic_block_orientation[0][1][0] = rc.OrizontalSpaceOrientation.SOUTH.value
+
+model = Simulation(100, 5, redstone_test_schematic, redstone_test_schematic_block_orientation)

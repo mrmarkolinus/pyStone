@@ -140,7 +140,7 @@ class RedstoneBlock(RedstoneComponent):
 
 class Repeater(RedstoneComponent):
     def __init__(self, orientation, delay_ticks=RedstoneConstants.REPEATER_STANDARD_TICKS_DELAY):
-        super().__init__(   orientation=orientation, 
+        super().__init__(   orientation=OrizontalSpaceOrientation(orientation), 
                             component_id=RedstoneComponentUniqueID.REDSTONE_REPEATER
                         )
 
@@ -162,6 +162,7 @@ class Repeater(RedstoneComponent):
             input_matrix[1][0] = RedstoneConstants.INPUT_POWER_UNKNOWN.value
 
         super().configure_input_matrix()
+        self.input_power = input_matrix
     
 
     def update(self):
